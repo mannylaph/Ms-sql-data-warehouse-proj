@@ -1,0 +1,54 @@
+/*******************************************************************************************
+ Author:        Emmanuel Iheukwumere
+ Date:          2025-08-17
+ Script:        Quality Checks on Gold Schema (dim_customers, dim_products, fact_sales)
+ 
+ Description:   This script performs quality validation checks on the Gold layer tables 
+                and views. It is designed to:
+                - Inspect data samples for sanity checks
+                - Validate distinct attribute values (e.g., gender)
+                - Perform referential integrity checks to ensure no missing dimension records
+ 
+ Inputs:        None
+ Outputs:       Query results to be visually inspected or validated by automated tests.
+ 
+ Caveat:        ⚠️ This script is READ-ONLY and does not modify or update any data.  
+                Use in production QA pipelines or ad-hoc investigations.
+*******************************************************************************************/
+
+
+/*******************************************
+ 1. DATA PREVIEW
+*******************************************/
+-- Preview Customers
+SELECT TOP 100 * 
+FROM gold.dim_customers;
+
+-- Preview Sales Fact
+SELECT TOP 100 * 
+FROM gold.fact_sales;
+
+
+/*******************************************
+ 2. ATTRIBUTE CHECKS
+*******************************************/
+-- Distinct gender values from Customers
+SELECT DISTINCT gender 
+FROM gold.dim_customers;
+
+
+/*******************************************
+ 3. INTEGRITY CHECKS
+*******************************************/
+-- Null Check: Identify fact rows with missing dimension mappings
+SELECT s.*
+      ,c.customer_id AS dim_customer_id
+      ,p.product_id  AS dim_product_id
+FROM gold.fact_sales s
+LEFT JOIN gold.dim_customers c 
+       ON s.customer_number = c.SK_customer
+LEFT JOIN gold.dim_products p 
+       ON s.product_number = p.product_sk
+WHERE c.customer_id IS NULL 
+   OR p.product_id IS NULL;
+
